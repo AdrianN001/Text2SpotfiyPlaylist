@@ -16,22 +16,31 @@ def filter_name(name): return "".join(
     [x for x in name if x in string.ascii_letters or x == " "])
 
 
-def doesSongExist(song_name: str, sp: spotipy.Spotify) -> bool:
+def create_and_fill_playlist(songs: list, name: str) -> None:
+    filtered_song = [url.split("/")[0] for title, url in songs]
+
+
+def doesSongExist(song_name: str, sp: spotipy.Spotify) -> tuple | None:
 
     # Check for both ...
     if song_name == "" or song_name == " ":
-        return False
+        return
     # Hungarian market
     for item in sp.search(q=song_name, type='track', limit=40, market="HU")['tracks']['items']:
         print(item['name'])
         if filter_name(item['name']) == filter_name(song_name):
-            return True
+            return item['name'], item["external_urls"]["spotify"]
+
     # and american market
     for item in sp.search(q=song_name, type='track', limit=40, market="US")['tracks']['items']:
         print(item['name'])
         if filter_name(item['name']) == filter_name(song_name):
-            return True
-    return False
+            return item['name'], item["external_urls"]["spotify"]
+    # and UK market
+    for item in sp.search(q=song_name, type='track', limit=40, market="GB")['tracks']['items']:
+        print(item['name'])
+        if filter_name(item['name']) == filter_name(song_name):
+            return item['name'], item["external_urls"]["spotify"]
 
 
 def main():
@@ -45,8 +54,8 @@ def main():
 
     while pointer < SAMPLE_TEXT.__len__():
 
-        if doesSongExist("".join(SAMPLE_TEXT[pointer:offset]), client):
-            local_founds = [" ".join(SAMPLE_TEXT[pointer:offset])]
+        if is_exist := (doesSongExist("".join(SAMPLE_TEXT[pointer:offset]), client)):
+            local_founds = [is_exist]
             local_max = -1
             for x in range(1, 4):
                 try:
@@ -57,12 +66,11 @@ def main():
                     print(found)
                     if found:
                         print("Találat")
-                        local_founds.append(
-                            " ".join(SAMPLE_TEXT[pointer:offset + x]))
+                        local_founds.append(found)
                         local_max = x
                 except IndexError:
                     break
-            # founds.append("".join(SAMPLE_TEXT[pointer:offset]))
+
             founds.append(local_founds[-1])
             pointer = offset + (local_max if local_max != -1 else 0)
         else:
@@ -74,7 +82,12 @@ def main():
         print(f"{pointer = }")
         print(f"{offset = }")
         print("_______")
-    print(founds)
+
+    # Create a txt file for the URLs
+    with open("Links.txt", "w") as file:
+
+        for title, url in founds:
+            file.write(url + "\n")
 
     #print(doesSongExist("White", client))
 
